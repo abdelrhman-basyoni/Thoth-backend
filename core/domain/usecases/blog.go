@@ -5,7 +5,8 @@ import (
 
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
 	repos "github.com/abdelrhman-basyoni/thoth-backend/core/implementation/repositories"
-	"github.com/abdelrhman-basyoni/thoth-backend/types"
+	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
+
 	"gorm.io/gorm"
 )
 
@@ -31,7 +32,7 @@ func (buc *BlogUseCases) CreateBlog(title, text, authorId string, categories []s
 
 func (buc *BlogUseCases) PublishBlog(blogId string, role, authorId string) error {
 
-	if role == types.Roles.Author {
+	if role == typ.Roles.Author {
 		res := buc.blogRepo.GetBlogForAuthor(blogId, authorId)
 		if res == nil {
 			return errors.New("invalid Blog")
@@ -53,4 +54,25 @@ func (buc *BlogUseCases) AddComment(blogId, commenterName, text string) error {
 		return errors.New("failed to Add Comment")
 	}
 	return nil
+}
+
+func (buc *BlogUseCases) ApproveComment(commentId string) error {
+
+	err := buc.blogRepo.ApproveComment(commentId)
+
+	if err != nil {
+		return errors.New("failed to Approve Comment")
+	}
+	return nil
+
+}
+func (buc *BlogUseCases) DeleteComment(commentId string) error {
+
+	err := buc.blogRepo.DeleteComment(commentId)
+
+	if err != nil {
+		return errors.New("failed to Approve Comment")
+	}
+	return nil
+
 }

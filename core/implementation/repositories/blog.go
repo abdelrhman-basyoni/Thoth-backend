@@ -2,10 +2,12 @@ package repos
 
 import (
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
 	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
+	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 	"gorm.io/gorm"
 )
 
@@ -66,4 +68,59 @@ func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId string) *entities.Blog 
 	}
 
 	return &blog
+}
+
+func (br *BlogRepoSql) ApproveComment(commentId string) error {
+
+	commentNum, err := strconv.ParseUint(commentId, 10, 64)
+	if err != nil {
+		return err
+	}
+	res := br.db.Model(&models.Comment{}).Where("id = ?", commentNum).UpdateColumn("approved", true)
+	return res.Error
+}
+func (br *BlogRepoSql) DeleteComment(commentId string) error {
+
+	commentNum, err := strconv.ParseUint(commentId, 10, 64)
+	if err != nil {
+		return err
+	}
+	res := br.db.Model(&models.Comment{}).Delete("id = ?", commentNum)
+	return res.Error
+}
+
+func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	res := typ.PaginatedEntities[entities.Comment]{}
+	blogNum, err := strconv.ParseUint(blogId, 10, 64)
+	recordsPerPage := 20
+	offset := (pageNum - 1) * recordsPerPage
+
+	if err != nil {
+		return nil, err
+	}
+	var totalErr error
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogNum).Count(&res.Total).Error; err != nil {
+			totalErr = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Where("blogId = ?", blogNum).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+			totalErr = err
+		}
+	}()
+	// Wait for both goroutines to complete
+	wg.Wait()
+
+	if totalErr != nil {
+		return nil, totalErr
+	}
+
+	return &res, nil
 }
