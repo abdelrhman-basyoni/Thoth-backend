@@ -3,6 +3,7 @@ package domain
 import (
 	"errors"
 
+	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
 	repos "github.com/abdelrhman-basyoni/thoth-backend/core/implementation/repositories"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
@@ -56,7 +57,14 @@ func (buc *BlogUseCases) AddComment(blogId, commenterName, text string) error {
 	return nil
 }
 
-func (buc *BlogUseCases) ApproveComment(commentId string) error {
+func (buc *BlogUseCases) ApproveComment(commentId, userId, role string) error {
+
+	if role != typ.Roles.Admin {
+		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
+		if !check {
+			return errors.New("unauthorized to Approve Comment")
+		}
+	}
 
 	err := buc.blogRepo.ApproveComment(commentId)
 
@@ -66,7 +74,14 @@ func (buc *BlogUseCases) ApproveComment(commentId string) error {
 	return nil
 
 }
-func (buc *BlogUseCases) DeleteComment(commentId string) error {
+
+func (buc *BlogUseCases) DeleteComment(commentId, userId, role string) error {
+	if role != typ.Roles.Admin {
+		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
+		if !check {
+			return errors.New("unauthorized to Approve Comment")
+		}
+	}
 
 	err := buc.blogRepo.DeleteComment(commentId)
 
@@ -75,4 +90,11 @@ func (buc *BlogUseCases) DeleteComment(commentId string) error {
 	}
 	return nil
 
+}
+
+func (buc *BlogUseCases) GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+	if pageNum <= 0 {
+		return nil, errors.New("invalid page number")
+	}
+	return buc.blogRepo.GetBlogComments(blogId, pageNum)
 }

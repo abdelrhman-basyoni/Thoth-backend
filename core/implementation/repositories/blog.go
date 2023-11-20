@@ -124,3 +124,28 @@ func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.Paginat
 
 	return &res, nil
 }
+
+func (br *BlogRepoSql) CanUserControlComment(userId, commentId string) (bool, error) {
+	commentNum, err := strconv.ParseUint(commentId, 10, 64)
+	if err != nil {
+		return false, err
+	}
+
+	userNum, err := strconv.ParseUint(userId, 10, 64)
+	if err != nil {
+		return false, err
+	}
+
+	var count int64
+	err = br.db.Model(&models.Comment{}).
+		Joins("JOIN blogs ON comments.blog_id = blogs.id").
+		Where("comments.id = ? AND blogs.author_id = ?", commentNum, userNum).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+
+}

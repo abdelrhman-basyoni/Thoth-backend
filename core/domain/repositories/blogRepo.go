@@ -13,4 +13,5 @@ type BlogRepository interface {
 	GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)
 	ApproveComment(commentId string) error
 	DeleteComment(commentId string) error
+	CanUserControlComment(userId, commentId string) (bool, error)
 }

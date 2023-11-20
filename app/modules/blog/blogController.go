@@ -1,9 +1,9 @@
 package blogModule
 
 import (
-	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/usecases"
 	"github.com/go-playground/validator/v10"
@@ -77,7 +77,7 @@ func (bc *BlogController) HandlePublish(c echo.Context) error {
 	role := c.Get("userRole").(string)
 	userId := c.Get("user").(string)
 	blogID := c.Param("id")
-	fmt.Println(role, userId, blogID)
+
 	if err := bc.uc.PublishBlog(blogID, role, userId); err != nil {
 		return err
 	}
@@ -109,4 +109,54 @@ func (bc *BlogController) HandleAddComment(c echo.Context) error {
 		return err
 	}
 	return c.NoContent(http.StatusOK)
+}
+
+func (bc *BlogController) HandleApproveComment(c echo.Context) error {
+	userId := c.Get("user").(string)
+	userRole := c.Get("role").(string)
+	commentId := c.Param("id")
+	err := bc.uc.ApproveComment(commentId, userId, userRole)
+
+	if err.Error() == "unauthorized to Approve Comment" {
+		return c.NoContent(http.StatusUnauthorized)
+	}
+
+	return c.NoContent(http.StatusOK)
+}
+
+func (bc *BlogController) HandleDeleteComment(c echo.Context) error {
+	commentId := c.Param("id")
+	userId := c.Get("user").(string)
+	userRole := c.Get("role").(string)
+	if err := bc.uc.DeleteComment(commentId, userId, userRole); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "Invalid comment id",
+		})
+	}
+	return c.NoContent(http.StatusOK)
+}
+
+func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
+	blogId := c.Param("id")
+	pageParam := c.QueryParam("page")
+	pageNum := 1
+	if pageParam != "" {
+		pageVal, err := strconv.ParseInt(pageParam, 10, 64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "Invalid page number",
+			})
+		}
+		pageNum = int(pageVal)
+	}
+
+	res, err := bc.uc.GetBlogComments(blogId, pageNum)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, res)
+
 }
