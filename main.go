@@ -15,6 +15,8 @@ func main() {
 	const port = 3000
 	db := config.InitDB()
 	e := echo.New()
+	e.Use(middleware.CORS())
+
 	blogModule.RegisterBlogRoutes(e, db)
 	authModule.RegisterAuthRoutes(e, db)
 	// Middleware
