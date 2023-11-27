@@ -57,10 +57,20 @@ func (buc *BlogUseCases) AddComment(blogId, commenterName, text string) error {
 	return nil
 }
 
+func (buc *BlogUseCases) GetPublishedBlogById(blogId string) (*entities.Blog, error) {
+	res := buc.blogRepo.GetBlogById(blogId, true)
+
+	if res == nil {
+		return nil, errors.New("invalid blog id")
+	}
+
+	return res, nil
+}
+
 func (buc *BlogUseCases) ApproveComment(commentId, userId, role string) error {
 
 	if role != typ.Roles.Admin {
-		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
+		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
 		if !check {
 			return errors.New("unauthorized to Approve Comment")
 		}
@@ -77,7 +87,7 @@ func (buc *BlogUseCases) ApproveComment(commentId, userId, role string) error {
 
 func (buc *BlogUseCases) DeleteComment(commentId, userId, role string) error {
 	if role != typ.Roles.Admin {
-		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
+		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
 		if !check {
 			return errors.New("unauthorized to Approve Comment")
 		}

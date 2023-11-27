@@ -111,6 +111,19 @@ func (bc *BlogController) HandleAddComment(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 }
 
+func (bc *BlogController) HandleGetPublishedBlog(c echo.Context) error {
+	blogId := c.Param("id")
+
+	res, err := bc.uc.GetPublishedBlogById(blogId)
+	if err != nil {
+		return c.NoContent(http.StatusNotFound)
+	}
+
+	return c.JSON(http.StatusBadRequest, map[string]interface{}{
+		"blog": res,
+	})
+}
+
 func (bc *BlogController) HandleApproveComment(c echo.Context) error {
 	userId := c.Get("user").(string)
 	userRole := c.Get("role").(string)

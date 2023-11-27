@@ -11,6 +11,7 @@ func RegisterBlogRoutes(e *echo.Echo, db *gorm.DB) {
 	controller := NewBlogController(db)
 	BlogGroup := e.Group("/blog")
 	BlogGroup.POST("/create", controller.HandleCreate, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
+	BlogGroup.GET("/get/:id", controller.HandleGetPublishedBlog)
 	BlogGroup.POST("/publish/:id", controller.HandlePublish, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.POST("/comments/:id", controller.HandleAddComment)
 	BlogGroup.POST("/comments/:id", controller.HandleDeleteComment)

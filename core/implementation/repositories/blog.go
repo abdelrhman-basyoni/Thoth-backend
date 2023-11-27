@@ -32,6 +32,36 @@ func (br *BlogRepoSql) CreateBlog(title, text, authorId string, categories []str
 
 }
 
+func (br *BlogRepoSql) GetBlogById(blogId string, mustBePublished bool) *entities.Blog {
+	blogNum, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		return nil
+	}
+
+	var blog entities.Blog
+
+	if mustBePublished {
+		res := br.db.Model(&models.Comment{}).First(&blog, "id = ? published = true", blogNum)
+
+		// Check if a record was found
+		if res.RowsAffected == 0 {
+			return nil
+		}
+
+		return &blog
+	}
+
+	res := br.db.Model(&models.Comment{}).First(&blog, "id = ?", blogNum)
+
+	// Check if a record was found
+	if res.RowsAffected == 0 {
+		return nil
+	}
+
+	return &blog
+
+}
+
 func (br *BlogRepoSql) PublishBlog(blogId string) error {
 	blogNum, err := strconv.Atoi(blogId)
 	if err != nil {
@@ -59,8 +89,12 @@ func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId string) *entities.Blog 
 	if err != nil {
 		return nil
 	}
+	blogNum, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		return nil
+	}
 	var blog entities.Blog
-	res := br.db.First(&blog, "id = ? AND author_id", blogId, uint(authId))
+	res := br.db.First(&blog, "id = ? AND author_id", blogNum, uint(authId))
 
 	// Check if a record was found
 	if res.RowsAffected == 0 {
@@ -79,6 +113,7 @@ func (br *BlogRepoSql) ApproveComment(commentId string) error {
 	res := br.db.Model(&models.Comment{}).Where("id = ?", commentNum).UpdateColumn("approved", true)
 	return res.Error
 }
+
 func (br *BlogRepoSql) DeleteComment(commentId string) error {
 
 	commentNum, err := strconv.ParseUint(commentId, 10, 64)
@@ -104,7 +139,7 @@ func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.Paginat
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogNum).Count(&res.Total).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ? AND approved = true", blogNum).Count(&res.Total).Error; err != nil {
 			totalErr = err
 		}
 	}()
@@ -125,7 +160,7 @@ func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.Paginat
 	return &res, nil
 }
 
-func (br *BlogRepoSql) CanUserControlComment(userId, commentId string) (bool, error) {
+func (br *BlogRepoSql) CanUserControlBlog(userId, commentId string) (bool, error) {
 	commentNum, err := strconv.ParseUint(commentId, 10, 64)
 	if err != nil {
 		return false, err
