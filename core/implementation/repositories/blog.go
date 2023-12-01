@@ -67,7 +67,7 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int)
 	validAuthor := *authorId != "" && authorId != nil
 	validCategory := *category != "" && category != nil
 	res := typ.PaginatedEntities[models.Blog]{}
-
+	test := &category
 	var whereQuery string
 	var variables []any
 	if validAuthor && validCategory {
@@ -75,8 +75,8 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int)
 		if err != nil {
 			return nil, err
 		}
-		whereQuery = "author_id = ? AND categories = ?"
-		variables = append(variables, authorNum, category)
+		whereQuery = "author_id = ? AND ? = ANY(categories)"
+		variables = append(variables, authorNum, test)
 	} else if validAuthor && !validCategory {
 		authorNum, err := strconv.Atoi(*authorId)
 		if err != nil {
@@ -85,8 +85,8 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int)
 		whereQuery = "author_id = ?"
 		variables = append(variables, authorNum)
 	} else if !validAuthor && validCategory {
-		whereQuery = "categories = ?"
-		variables = append(variables, category)
+		whereQuery = "? = ANY(categories)"
+		variables = append(variables, test)
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
