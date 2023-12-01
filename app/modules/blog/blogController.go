@@ -173,3 +173,30 @@ func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 
 }
+
+func (bc *BlogController) HandleGetBlogs(c echo.Context) error {
+	pageParam := c.QueryParam("page")
+	authorId := c.QueryParam("author")
+	category := c.QueryParam("category")
+	pageNum := 1
+
+	if pageParam != "" {
+		pageVal, err := strconv.ParseInt(pageParam, 10, 64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "Invalid page number",
+			})
+		}
+		pageNum = int(pageVal)
+	}
+	res, err := bc.uc.GetAllBlogsPaginated(&authorId, &category, pageNum)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"blogs": res,
+	})
+}

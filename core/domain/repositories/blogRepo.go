@@ -2,12 +2,14 @@ package domain
 
 import (
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
+	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 )
 
 type BlogRepository interface {
 	CreateBlog(title, text, authorId string, categories []string) error
 	PublishBlog(blogId string) error
+	GetBlogsFiltered(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error)
 	GetBlogById(blogId string, mustBePublished bool) *entities.Blog
 	AddComment(blogId, commenterName, text string) error
 	GetBlogForAuthor(blogId, authorId string) *entities.Blog

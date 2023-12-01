@@ -5,6 +5,7 @@ import (
 
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
+	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	repos "github.com/abdelrhman-basyoni/thoth-backend/core/implementation/repositories"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 
@@ -107,4 +108,11 @@ func (buc *BlogUseCases) GetBlogComments(blogId string, pageNum int) (*typ.Pagin
 		return nil, errors.New("invalid page number")
 	}
 	return buc.blogRepo.GetBlogComments(blogId, pageNum)
+}
+
+func (buc *BlogUseCases) GetAllBlogsPaginated(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error) {
+	if pageNum <= 0 {
+		return nil, errors.New("invalid page number")
+	}
+	return buc.blogRepo.GetBlogsFiltered(authorId, category, pageNum)
 }

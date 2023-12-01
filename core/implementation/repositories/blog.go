@@ -62,6 +62,63 @@ func (br *BlogRepoSql) GetBlogById(blogId string, mustBePublished bool) *entitie
 
 }
 
+func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error) {
+
+	validAuthor := *authorId != "" && authorId != nil
+	validCategory := *category != "" && category != nil
+	res := typ.PaginatedEntities[models.Blog]{}
+
+	var whereQuery string
+	var variables []any
+	if validAuthor && validCategory {
+		authorNum, err := strconv.Atoi(*authorId)
+		if err != nil {
+			return nil, err
+		}
+		whereQuery = "author_id = ? AND categories = ?"
+		variables = append(variables, authorNum, category)
+	} else if validAuthor && !validCategory {
+		authorNum, err := strconv.Atoi(*authorId)
+		if err != nil {
+			return nil, err
+		}
+		whereQuery = "author_id = ?"
+		variables = append(variables, authorNum)
+	} else if !validAuthor && validCategory {
+		whereQuery = "categories = ?"
+		variables = append(variables, category)
+	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	recordsPerPage := 20
+	offset := (pageNum - 1) * recordsPerPage
+	var totalErr error
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Blog{}).Where(whereQuery, variables...).Count(&res.Total).Error; err != nil {
+			totalErr = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Blog{}).Where(whereQuery, variables...).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+			totalErr = err
+		}
+	}()
+	// Wait for both goroutines to complete
+	wg.Wait()
+
+	if totalErr != nil {
+		return nil, totalErr
+	}
+
+	return &res, nil
+
+}
+
 func (br *BlogRepoSql) PublishBlog(blogId string) error {
 	blogNum, err := strconv.Atoi(blogId)
 	if err != nil {
@@ -146,7 +203,7 @@ func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.Paginat
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Where("blogId = ?", blogNum).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogNum).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
 			totalErr = err
 		}
 	}()
