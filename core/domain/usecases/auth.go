@@ -18,20 +18,31 @@ func NewAuthUseCases(db *gorm.DB) *AuthUseCases {
 	return &AuthUseCases{userRepo: repo}
 }
 
-func (auc *AuthUseCases) Login(email, password string) (string, error) {
+type LoginRes struct {
+	Token    string `json:"token"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}
+
+func (auc *AuthUseCases) Login(email, password string) (*LoginRes, error) {
 
 	candidate := auc.userRepo.GetUserByEmail(email)
 
 	if candidate == nil {
-		return "", errors.New("invalid User Credentials")
+		return nil, errors.New("invalid User Credentials")
 	}
 
 	err := candidate.ValidatePassword(password)
 
 	if err != nil {
-		return "", errors.New("invalid User Credentials")
+		return nil, errors.New("invalid User Credentials")
 	}
-	return candidate.SignToken()
+	token, err := candidate.SignToken()
+	if err != nil {
+		return nil, errors.New("invalid User Credentials")
+	}
+
+	return &LoginRes{Token: token, Username: candidate.Name, Role: candidate.Role}, nil
 }
 
 func (auc *AuthUseCases) Create(name, email, password, role string) error {

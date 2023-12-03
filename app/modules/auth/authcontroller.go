@@ -73,14 +73,12 @@ func (ac *AuthController) HandleLogin(c echo.Context) error {
 
 		return err
 	}
-	token, err := ac.uc.Login(user.Email, user.Password)
+	res, err := ac.uc.Login(user.Email, user.Password)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"token": token,
-	})
+	return c.JSON(http.StatusOK, res)
 }
 
 func (ac *AuthController) Test(c echo.Context) error {
