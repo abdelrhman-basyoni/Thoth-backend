@@ -33,3 +33,11 @@ func (u *User) SignToken() (string, error) {
 	return token.SignedString([]byte(secretKey))
 
 }
+
+type GetAllUsersRes struct {
+	ID        string `json:"id"` // defining id as string so it can work with any database not just sql types
+	Name      string `json:"name"`
+	Email     string `json:"email"`
+	Role      string `json:"role"`
+	CreatedAt string `json:"created_at"`
+}
