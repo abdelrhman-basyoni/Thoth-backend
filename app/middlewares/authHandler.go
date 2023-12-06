@@ -27,7 +27,10 @@ func RoleAuth(roles []string) echo.MiddlewareFunc {
 
 			if err != nil || !token.Valid {
 				fmt.Println(err.Error())
-				return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+				return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+					"error": "InvalidToken",
+				})
+
 			}
 
 			// // Access the claims from the token
@@ -35,7 +38,10 @@ func RoleAuth(roles []string) echo.MiddlewareFunc {
 			userId, ok2 := claims["id"].(string)
 
 			if !ok1 || !ok2 {
-				return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+				return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+					"error": "InvalidToken",
+				})
+
 			}
 
 			tokenRole, ok := claims["role"].(string)

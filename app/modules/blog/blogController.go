@@ -131,7 +131,7 @@ func (bc *BlogController) HandleApproveComment(c echo.Context) error {
 	err := bc.uc.ApproveComment(commentId, userId, userRole)
 
 	if err.Error() == "unauthorized to Approve Comment" {
-		return c.NoContent(http.StatusUnauthorized)
+		return c.NoContent(http.StatusForbidden)
 	}
 
 	return c.NoContent(http.StatusOK)
