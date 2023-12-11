@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/usecases"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"gorm.io/gorm"
@@ -48,7 +49,7 @@ func NewBlogController(db *gorm.DB) *BlogController {
 func (bc *BlogController) HandleCreate(c echo.Context) error {
 
 	var blog createBlog
-	userId := c.Get("user").(string)
+	userId := c.Get("user").(uint)
 	// Bind and validate the request body
 	if err := c.Bind(&blog); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
@@ -75,10 +76,16 @@ func (bc *BlogController) HandleCreate(c echo.Context) error {
 
 func (bc *BlogController) HandlePublish(c echo.Context) error {
 	role := c.Get("userRole").(string)
-	userId := c.Get("user").(string)
+	userId := c.Get("user").(uint)
 	blogID := c.Param("id")
 
-	if err := bc.uc.PublishBlog(blogID, role, userId); err != nil {
+	blogIdUint, err := strconv.ParseUint(blogID, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
+	if err := bc.uc.PublishBlog(uint(blogIdUint), userId, role); err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)
@@ -91,6 +98,12 @@ type addComment struct {
 
 func (bc *BlogController) HandleAddComment(c echo.Context) error {
 	blogID := c.Param("id")
+	blogIdUint, err := strconv.ParseUint(blogID, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
 	var comment addComment
 	// Bind and validate the request body
 	if err := c.Bind(&comment); err != nil {
@@ -105,7 +118,7 @@ func (bc *BlogController) HandleAddComment(c echo.Context) error {
 		return err
 	}
 
-	if err := bc.uc.AddComment(blogID, comment.CommenterName, comment.Text); err != nil {
+	if err := bc.uc.AddComment(uint(blogIdUint), comment.CommenterName, comment.Text); err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)
@@ -113,8 +126,13 @@ func (bc *BlogController) HandleAddComment(c echo.Context) error {
 
 func (bc *BlogController) HandleGetPublishedBlog(c echo.Context) error {
 	blogId := c.Param("id")
+	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
 
-	res, err := bc.uc.GetPublishedBlogById(blogId)
+	}
+	res, err := bc.uc.GetPublishedBlogById(uint(blogIdUint))
 	if err != nil {
 		return c.NoContent(http.StatusNotFound)
 	}
@@ -125,10 +143,19 @@ func (bc *BlogController) HandleGetPublishedBlog(c echo.Context) error {
 }
 
 func (bc *BlogController) HandleApproveComment(c echo.Context) error {
-	userId := c.Get("user").(string)
+	userId := c.Get("user").(uint)
 	userRole := c.Get("role").(string)
 	commentId := c.Param("id")
-	err := bc.uc.ApproveComment(commentId, userId, userRole)
+
+	// Convert commentId to a uint
+	commentIdUint, err := strconv.ParseUint(commentId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid comment ID")
+
+	}
+
+	err = bc.uc.ApproveComment(uint(commentIdUint), userId, userRole)
 
 	if err.Error() == "unauthorized to Approve Comment" {
 		return c.NoContent(http.StatusForbidden)
@@ -139,9 +166,15 @@ func (bc *BlogController) HandleApproveComment(c echo.Context) error {
 
 func (bc *BlogController) HandleDeleteComment(c echo.Context) error {
 	commentId := c.Param("id")
-	userId := c.Get("user").(string)
+	commentIdUint, err := strconv.ParseUint(commentId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid comment ID")
+
+	}
+	userId := c.Get("user").(uint)
 	userRole := c.Get("role").(string)
-	if err := bc.uc.DeleteComment(commentId, userId, userRole); err != nil {
+	if err := bc.uc.DeleteComment(uint(commentIdUint), userId, userRole); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": "Invalid comment id",
 		})
@@ -151,7 +184,14 @@ func (bc *BlogController) HandleDeleteComment(c echo.Context) error {
 
 func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
 	blogId := c.Param("id")
+	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
 	pageParam := c.QueryParam("page")
+
 	pageNum := 1
 	if pageParam != "" {
 		pageVal, err := strconv.ParseInt(pageParam, 10, 64)
@@ -163,7 +203,7 @@ func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
 		pageNum = int(pageVal)
 	}
 
-	res, err := bc.uc.GetBlogComments(blogId, pageNum)
+	res, err := bc.uc.GetBlogComments(uint(blogIdUint), pageNum)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),
@@ -177,6 +217,13 @@ func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
 func (bc *BlogController) HandleGetBlogs(c echo.Context) error {
 	pageParam := c.QueryParam("page")
 	authorId := c.QueryParam("author")
+	authorIdUint, err := strconv.ParseUint(authorId, 10, 64)
+	authorU := uint(authorIdUint)
+	authID := &authorU
+	if err != nil {
+		authID = nil
+
+	}
 	category := c.QueryParam("category")
 	pageNum := 1
 
@@ -189,7 +236,7 @@ func (bc *BlogController) HandleGetBlogs(c echo.Context) error {
 		}
 		pageNum = int(pageVal)
 	}
-	res, err := bc.uc.GetAllBlogsPaginated(&authorId, &category, pageNum)
+	res, err := bc.uc.GetAllBlogsPaginated(authID, &category, pageNum)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

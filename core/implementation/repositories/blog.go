@@ -1,15 +1,26 @@
 package repos
 
 import (
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
+	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
 	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 	"gorm.io/gorm"
 )
+
+type BlogData struct {
+	ID          uint      `json:"id"`
+	Title       string    `json:"title"`
+	Body        string    `json:"body"`
+	Published   bool      `json:"published"`
+	PublishedAt time.Time `json:"publishedAt"`
+	Categories  []string  `json:"categories"`
+	AuthorName  string    `json:"author_name"`
+	AuthorID    string    `json:"author_id"`
+}
 
 type BlogRepoSql struct {
 	db *gorm.DB
@@ -19,29 +30,20 @@ func NewBlogRepoSql(db *gorm.DB) *BlogRepoSql {
 	return &BlogRepoSql{db: db}
 }
 
-func (br *BlogRepoSql) CreateBlog(title, text, authorId string, categories []string) error {
+func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories []string) error {
 
-	authorIdNum, err := strconv.Atoi(authorId)
-	if err != nil {
-		return err
-	}
-
-	res := br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: uint(authorIdNum), Categories: categories})
+	res := br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories})
 
 	return res.Error
 
 }
 
-func (br *BlogRepoSql) GetBlogById(blogId string, mustBePublished bool) *entities.Blog {
-	blogNum, err := strconv.ParseUint(blogId, 10, 64)
-	if err != nil {
-		return nil
-	}
+func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *entities.Blog {
 
 	var blog entities.Blog
 
 	if mustBePublished {
-		res := br.db.Model(&models.Comment{}).First(&blog, "id = ? published = true", blogNum)
+		res := br.db.Model(&models.Comment{}).First(&blog, "id = ? published = true", blogId)
 
 		// Check if a record was found
 		if res.RowsAffected == 0 {
@@ -51,7 +53,7 @@ func (br *BlogRepoSql) GetBlogById(blogId string, mustBePublished bool) *entitie
 		return &blog
 	}
 
-	res := br.db.Model(&models.Comment{}).First(&blog, "id = ?", blogNum)
+	res := br.db.Model(&models.Comment{}).First(&blog, "id = ?", blogId)
 
 	// Check if a record was found
 	if res.RowsAffected == 0 {
@@ -62,28 +64,24 @@ func (br *BlogRepoSql) GetBlogById(blogId string, mustBePublished bool) *entitie
 
 }
 
-func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error) {
+func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[domain.BlogData], error) {
+	br.db = br.db.Debug()
 
-	validAuthor := *authorId != "" && authorId != nil
+	validAuthor := authorId != nil
 	validCategory := *category != "" && category != nil
-	res := typ.PaginatedEntities[models.Blog]{}
+	res := typ.PaginatedEntities[domain.BlogData]{}
+	res1 := []BlogData{}
 	test := &category
 	var whereQuery string
 	var variables []any
 	if validAuthor && validCategory {
-		authorNum, err := strconv.Atoi(*authorId)
-		if err != nil {
-			return nil, err
-		}
+
 		whereQuery = "author_id = ? AND ? = ANY(categories)"
-		variables = append(variables, authorNum, test)
+		variables = append(variables, authorId, test)
 	} else if validAuthor && !validCategory {
-		authorNum, err := strconv.Atoi(*authorId)
-		if err != nil {
-			return nil, err
-		}
+
 		whereQuery = "author_id = ?"
-		variables = append(variables, authorNum)
+		variables = append(variables, authorId)
 	} else if !validAuthor && validCategory {
 		whereQuery = "? = ANY(categories)"
 		variables = append(variables, test)
@@ -94,17 +92,21 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int)
 	recordsPerPage := 20
 	offset := (pageNum - 1) * recordsPerPage
 	var totalErr error
-
+	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Blog{}).Where(whereQuery, variables...).Count(&res.Total).Error; err != nil {
+		if err := br.db.Model(&models.Blog{}).Select(selectQuery).
+			Joins("JOIN users ON blogs.author_id = users.id").
+			Where(whereQuery, variables...).Count(&res.Total).Error; err != nil {
 			totalErr = err
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Blog{}).Where(whereQuery, variables...).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+		if err := br.db.Model(&models.Blog{}).Select(selectQuery).
+			Joins("JOIN users ON blogs.author_id = users.id").
+			Where(whereQuery, variables...).Offset(offset).Limit(recordsPerPage).Find(&res1).Error; err != nil {
 			totalErr = err
 		}
 	}()
@@ -114,17 +116,20 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId, category *string, pageNum int)
 	if totalErr != nil {
 		return nil, totalErr
 	}
+	entities := res.Entities
+	for _, res := range res1 {
+		blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
+		entities = append(entities, blog)
+	}
+	res.Entities = entities
 
 	return &res, nil
 
 }
 
-func (br *BlogRepoSql) PublishBlog(blogId string) error {
-	blogNum, err := strconv.Atoi(blogId)
-	if err != nil {
-		return err
-	}
-	res := br.db.Model(&models.Blog{}).Where("id = ?", blogNum).Updates(&map[string]interface{}{
+func (br *BlogRepoSql) PublishBlog(blogId uint) error {
+
+	res := br.db.Model(&models.Blog{}).Where("id = ?", blogId).Updates(&map[string]interface{}{
 		"published":    true,
 		"published_at": time.Now(),
 	})
@@ -132,26 +137,16 @@ func (br *BlogRepoSql) PublishBlog(blogId string) error {
 	return res.Error
 }
 
-func (br *BlogRepoSql) AddComment(blogId, commenterName, text string) error {
-	blogNum, err := strconv.ParseUint(blogId, 10, 64)
-	if err != nil {
-		return err
-	}
-	res := br.db.Model(&models.Comment{}).Create(&models.Comment{CommenterName: commenterName, Text: text, BlogID: uint(blogNum)})
+func (br *BlogRepoSql) AddComment(blogId uint, commenterName, text string) error {
+
+	res := br.db.Model(&models.Comment{}).Create(&models.Comment{CommenterName: commenterName, Text: text, BlogID: blogId})
 	return res.Error
 }
 
-func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId string) *entities.Blog {
-	authId, err := strconv.ParseUint(blogId, 10, 64)
-	if err != nil {
-		return nil
-	}
-	blogNum, err := strconv.ParseUint(blogId, 10, 64)
-	if err != nil {
-		return nil
-	}
+func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId uint) *entities.Blog {
+
 	var blog entities.Blog
-	res := br.db.First(&blog, "id = ? AND author_id", blogNum, uint(authId))
+	res := br.db.First(&blog, "id = ? AND author_id", blogId, authorId)
 
 	// Check if a record was found
 	if res.RowsAffected == 0 {
@@ -161,49 +156,38 @@ func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId string) *entities.Blog 
 	return &blog
 }
 
-func (br *BlogRepoSql) ApproveComment(commentId string) error {
+func (br *BlogRepoSql) ApproveComment(commentId uint) error {
 
-	commentNum, err := strconv.ParseUint(commentId, 10, 64)
-	if err != nil {
-		return err
-	}
-	res := br.db.Model(&models.Comment{}).Where("id = ?", commentNum).UpdateColumn("approved", true)
+	res := br.db.Model(&models.Comment{}).Where("id = ?", commentId).UpdateColumn("approved", true)
 	return res.Error
 }
 
-func (br *BlogRepoSql) DeleteComment(commentId string) error {
+func (br *BlogRepoSql) DeleteComment(commentId uint) error {
 
-	commentNum, err := strconv.ParseUint(commentId, 10, 64)
-	if err != nil {
-		return err
-	}
-	res := br.db.Model(&models.Comment{}).Delete("id = ?", commentNum)
+	res := br.db.Model(&models.Comment{}).Delete("id = ?", commentId)
 	return res.Error
 }
 
-func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+func (br *BlogRepoSql) GetBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 	res := typ.PaginatedEntities[entities.Comment]{}
-	blogNum, err := strconv.ParseUint(blogId, 10, 64)
+
 	recordsPerPage := 20
 	offset := (pageNum - 1) * recordsPerPage
 
-	if err != nil {
-		return nil, err
-	}
 	var totalErr error
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ? AND approved = true", blogNum).Count(&res.Total).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ? AND approved = true", blogId).Count(&res.Total).Error; err != nil {
 			totalErr = err
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogNum).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogId).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
 			totalErr = err
 		}
 	}()
@@ -217,21 +201,12 @@ func (br *BlogRepoSql) GetBlogComments(blogId string, pageNum int) (*typ.Paginat
 	return &res, nil
 }
 
-func (br *BlogRepoSql) CanUserControlBlog(userId, commentId string) (bool, error) {
-	commentNum, err := strconv.ParseUint(commentId, 10, 64)
-	if err != nil {
-		return false, err
-	}
-
-	userNum, err := strconv.ParseUint(userId, 10, 64)
-	if err != nil {
-		return false, err
-	}
+func (br *BlogRepoSql) CanUserControlBlog(userId, commentId uint) (bool, error) {
 
 	var count int64
-	err = br.db.Model(&models.Comment{}).
+	err := br.db.Model(&models.Comment{}).
 		Joins("JOIN blogs ON comments.blog_id = blogs.id").
-		Where("comments.id = ? AND blogs.author_id = ?", commentNum, userNum).
+		Where("comments.id = ? AND blogs.author_id = ?", commentId, userId).
 		Count(&count).Error
 
 	if err != nil {

@@ -3,7 +3,7 @@ package entities
 import "time"
 
 type Blog struct {
-	ID          string    `json:"id"` // defining id as string so it can work with any database not just sql types
+	ID          uint      `json:"id"` // defining id as string so it can work with any database not just sql types
 	Title       string    `json:"title"`
 	Body        string    `json:"body"`
 	Published   bool      `json:"published"`

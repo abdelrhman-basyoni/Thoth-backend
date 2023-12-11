@@ -1,20 +1,35 @@
 package domain
 
 import (
+	"time"
+
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
-	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 )
 
+type BlogAuthorData struct {
+	ID   string `json:"id" gorm:"embedded;embeddedPrefix:author_"`
+	Name string `json:"name" gorm:"embedded;embeddedPrefix:author_"`
+}
+type BlogData struct {
+	ID          uint           `json:"id"`
+	Title       string         `json:"title"`
+	Body        string         `json:"body"`
+	Published   bool           `json:"published"`
+	PublishedAt time.Time      `json:"publishedAt"`
+	Categories  []string       `json:"categories"`
+	Author      BlogAuthorData `json:"author"`
+}
+
 type BlogRepository interface {
-	CreateBlog(title, text, authorId string, categories []string) error
-	PublishBlog(blogId string) error
-	GetBlogsFiltered(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error)
-	GetBlogById(blogId string, mustBePublished bool) *entities.Blog
-	AddComment(blogId, commenterName, text string) error
-	GetBlogForAuthor(blogId, authorId string) *entities.Blog
-	GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)
-	ApproveComment(commentId string) error
-	DeleteComment(commentId string) error
-	CanUserControlBlog(userId, commentId string) (bool, error)
+	CreateBlog(title, text string, authorId uint, categories []string) error
+	PublishBlog(blogId uint) error
+	GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[BlogData], error)
+	GetBlogById(blogId uint, mustBePublished bool) *entities.Blog
+	AddComment(blogId uint, commenterName, text string) error
+	GetBlogForAuthor(blogId, authorId uint) *entities.Blog
+	GetBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)
+	ApproveComment(commentId uint) error
+	DeleteComment(commentId uint) error
+	CanUserControlBlog(userId, commentId uint) (bool, error)
 }

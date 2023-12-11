@@ -5,7 +5,6 @@ import (
 
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
-	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	repos "github.com/abdelrhman-basyoni/thoth-backend/core/implementation/repositories"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 
@@ -21,7 +20,7 @@ func NewBlogUseCases(db *gorm.DB) *BlogUseCases {
 	return &BlogUseCases{blogRepo: repo}
 }
 
-func (buc *BlogUseCases) CreateBlog(title, text, authorId string, categories []string) error {
+func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categories []string) error {
 
 	err := buc.blogRepo.CreateBlog(title, text, authorId, categories)
 
@@ -32,7 +31,7 @@ func (buc *BlogUseCases) CreateBlog(title, text, authorId string, categories []s
 
 }
 
-func (buc *BlogUseCases) PublishBlog(blogId string, role, authorId string) error {
+func (buc *BlogUseCases) PublishBlog(blogId, authorId uint, role string) error {
 
 	if role == typ.Roles.Author {
 		res := buc.blogRepo.GetBlogForAuthor(blogId, authorId)
@@ -49,7 +48,7 @@ func (buc *BlogUseCases) PublishBlog(blogId string, role, authorId string) error
 	return nil
 }
 
-func (buc *BlogUseCases) AddComment(blogId, commenterName, text string) error {
+func (buc *BlogUseCases) AddComment(blogId uint, commenterName, text string) error {
 	err := buc.blogRepo.AddComment(blogId, commenterName, text)
 
 	if err != nil {
@@ -58,7 +57,7 @@ func (buc *BlogUseCases) AddComment(blogId, commenterName, text string) error {
 	return nil
 }
 
-func (buc *BlogUseCases) GetPublishedBlogById(blogId string) (*entities.Blog, error) {
+func (buc *BlogUseCases) GetPublishedBlogById(blogId uint) (*entities.Blog, error) {
 	res := buc.blogRepo.GetBlogById(blogId, true)
 
 	if res == nil {
@@ -68,7 +67,7 @@ func (buc *BlogUseCases) GetPublishedBlogById(blogId string) (*entities.Blog, er
 	return res, nil
 }
 
-func (buc *BlogUseCases) ApproveComment(commentId, userId, role string) error {
+func (buc *BlogUseCases) ApproveComment(commentId, userId uint, role string) error {
 
 	if role != typ.Roles.Admin {
 		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
@@ -86,7 +85,7 @@ func (buc *BlogUseCases) ApproveComment(commentId, userId, role string) error {
 
 }
 
-func (buc *BlogUseCases) DeleteComment(commentId, userId, role string) error {
+func (buc *BlogUseCases) DeleteComment(commentId, userId uint, role string) error {
 	if role != typ.Roles.Admin {
 		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
 		if !check {
@@ -103,14 +102,14 @@ func (buc *BlogUseCases) DeleteComment(commentId, userId, role string) error {
 
 }
 
-func (buc *BlogUseCases) GetBlogComments(blogId string, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+func (buc *BlogUseCases) GetBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
 	if pageNum <= 0 {
 		return nil, errors.New("invalid page number")
 	}
 	return buc.blogRepo.GetBlogComments(blogId, pageNum)
 }
 
-func (buc *BlogUseCases) GetAllBlogsPaginated(authorId, category *string, pageNum int) (*typ.PaginatedEntities[models.Blog], error) {
+func (buc *BlogUseCases) GetAllBlogsPaginated(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[domain.BlogData], error) {
 	if pageNum <= 0 {
 		return nil, errors.New("invalid page number")
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 type User struct {
-	ID       string `json:"id"` // defining id as string so it can work with any database not just sql types
+	ID       uint   `json:"id"` // defining id as string so it can work with any database not just sql types
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
