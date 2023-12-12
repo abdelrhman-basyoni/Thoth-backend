@@ -8,7 +8,7 @@ import (
 )
 
 type BlogAuthorData struct {
-	ID   string `json:"id" gorm:"embedded;embeddedPrefix:author_"`
+	ID   uint   `json:"id" gorm:"embedded;embeddedPrefix:author_"`
 	Name string `json:"name" gorm:"embedded;embeddedPrefix:author_"`
 }
 type BlogData struct {

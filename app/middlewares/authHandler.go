@@ -35,7 +35,8 @@ func RoleAuth(roles []string) echo.MiddlewareFunc {
 
 			// // Access the claims from the token
 			claims, ok1 := token.Claims.(jwt.MapClaims)
-			userId, ok2 := claims["id"].(string)
+			userId, ok2 := claims["id"].(float64)
+			tokenRole, ok := claims["role"].(string)
 
 			if !ok1 || !ok2 {
 				return c.JSON(http.StatusUnauthorized, map[string]interface{}{
@@ -44,7 +45,7 @@ func RoleAuth(roles []string) echo.MiddlewareFunc {
 
 			}
 
-			tokenRole, ok := claims["role"].(string)
+			// tokenRole, ok := claims["role"].(string)
 
 			if !ok {
 				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid role")
@@ -58,7 +59,7 @@ func RoleAuth(roles []string) echo.MiddlewareFunc {
 
 			// Set user data in the context for use in handlers
 
-			c.Set("user", userId)
+			c.Set("user", uint(userId))
 			c.Set("userRole", tokenRole)
 
 			return next(c)

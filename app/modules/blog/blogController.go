@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/usecases"
+	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
@@ -237,6 +238,27 @@ func (bc *BlogController) HandleGetBlogs(c echo.Context) error {
 		pageNum = int(pageVal)
 	}
 	res, err := bc.uc.GetAllBlogsPaginated(authID, &category, pageNum)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"blogs": res,
+	})
+}
+
+func (bc *BlogController) HandleGetMyBlogs(c echo.Context) error {
+	role := c.Get("userRole").(string)
+	userId := c.Get("user").(uint)
+	authorId := &userId
+
+	if role == typ.Roles.Admin {
+		authorId = nil
+	}
+
+	res, err := bc.uc.GetAllMyBlogsPaginated(authorId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

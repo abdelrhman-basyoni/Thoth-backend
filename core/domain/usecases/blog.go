@@ -115,3 +115,7 @@ func (buc *BlogUseCases) GetAllBlogsPaginated(authorId *uint, category *string, 
 	}
 	return buc.blogRepo.GetBlogsFiltered(authorId, category, pageNum)
 }
+func (buc *BlogUseCases) GetAllMyBlogsPaginated(authorId *uint) (*typ.PaginatedEntities[domain.BlogData], error) {
+
+	return buc.blogRepo.GetBlogsFiltered(authorId, nil, 1)
+}

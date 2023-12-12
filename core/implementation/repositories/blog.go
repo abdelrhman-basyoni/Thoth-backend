@@ -8,18 +8,19 @@ import (
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
 	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
 	typ "github.com/abdelrhman-basyoni/thoth-backend/types"
+	"github.com/lib/pq"
 	"gorm.io/gorm"
 )
 
 type BlogData struct {
-	ID          uint      `json:"id"`
-	Title       string    `json:"title"`
-	Body        string    `json:"body"`
-	Published   bool      `json:"published"`
-	PublishedAt time.Time `json:"publishedAt"`
-	Categories  []string  `json:"categories"`
-	AuthorName  string    `json:"author_name"`
-	AuthorID    string    `json:"author_id"`
+	ID          uint           `json:"id"`
+	Title       string         `json:"title"`
+	Body        string         `json:"body"`
+	Published   bool           `json:"published"`
+	PublishedAt time.Time      `json:"publishedAt"`
+	Categories  pq.StringArray `json:"categories" gorm:"type:text[]"`
+	AuthorName  string         `json:"author_name"`
+	AuthorID    uint           `json:"author_id"`
 }
 
 type BlogRepoSql struct {
@@ -68,7 +69,7 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 	br.db = br.db.Debug()
 
 	validAuthor := authorId != nil
-	validCategory := *category != "" && category != nil
+	validCategory := category != nil && *category != ""
 	res := typ.PaginatedEntities[domain.BlogData]{}
 	res1 := []BlogData{}
 	test := &category
