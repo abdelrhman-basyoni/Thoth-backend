@@ -57,8 +57,18 @@ func (buc *BlogUseCases) AddComment(blogId uint, commenterName, text string) err
 	return nil
 }
 
-func (buc *BlogUseCases) GetPublishedBlogById(blogId uint) (*entities.Blog, error) {
+func (buc *BlogUseCases) GetPublishedBlogById(blogId uint) (*domain.BlogData, error) {
 	res := buc.blogRepo.GetBlogById(blogId, true)
+
+	if res == nil {
+		return nil, errors.New("invalid blog id")
+	}
+
+	return res, nil
+}
+
+func (buc *BlogUseCases) GetMyBlogById(blogId uint) (*domain.BlogData, error) {
+	res := buc.blogRepo.GetBlogById(blogId, false)
 
 	if res == nil {
 		return nil, errors.New("invalid blog id")

@@ -25,7 +25,7 @@ type BlogRepository interface {
 	CreateBlog(title, text string, authorId uint, categories []string) error
 	PublishBlog(blogId uint) error
 	GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[BlogData], error)
-	GetBlogById(blogId uint, mustBePublished bool) *entities.Blog
+	GetBlogById(blogId uint, mustBePublished bool) *BlogData
 	AddComment(blogId uint, commenterName, text string) error
 	GetBlogForAuthor(blogId, authorId uint) *entities.Blog
 	GetBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)

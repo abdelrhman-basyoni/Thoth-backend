@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"gorm.io/gorm"
 )
 
@@ -135,12 +136,28 @@ func (bc *BlogController) HandleGetPublishedBlog(c echo.Context) error {
 	}
 	res, err := bc.uc.GetPublishedBlogById(uint(blogIdUint))
 	if err != nil {
-		return c.NoContent(http.StatusNotFound)
+		log.Error(err)
+		return c.JSON(http.StatusNotFound, err.Error())
 	}
 
-	return c.JSON(http.StatusBadRequest, map[string]interface{}{
-		"blog": res,
-	})
+	return c.JSON(http.StatusOK, res)
+}
+
+func (bc *BlogController) HandleGetMyBlog(c echo.Context) error {
+	blogId := c.Param("id")
+	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
+	res, err := bc.uc.GetMyBlogById(uint(blogIdUint))
+	if err != nil {
+		log.Error(err)
+		return c.JSON(http.StatusNotFound, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, res)
 }
 
 func (bc *BlogController) HandleApproveComment(c echo.Context) error {
@@ -265,7 +282,5 @@ func (bc *BlogController) HandleGetMyBlogs(c echo.Context) error {
 		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"blogs": res,
-	})
+	return c.JSON(http.StatusOK, res)
 }

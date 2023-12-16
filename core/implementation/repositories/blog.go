@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -23,6 +24,11 @@ type BlogData struct {
 	AuthorID    uint           `json:"author_id"`
 }
 
+func (res *BlogData) fmtToDomainBlogData() domain.BlogData {
+	blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
+	return blog
+}
+
 type BlogRepoSql struct {
 	db *gorm.DB
 }
@@ -39,29 +45,34 @@ func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories 
 
 }
 
-func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *entities.Blog {
-
-	var blog entities.Blog
+func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *domain.BlogData {
+	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
+	var blog BlogData
 
 	if mustBePublished {
-		res := br.db.Model(&models.Comment{}).First(&blog, "id = ? published = true", blogId)
+		res := br.db.Model(&models.Blog{}).Select(selectQuery).
+			Joins("JOIN users ON blogs.author_id = users.id").First(&blog, "blogs.id = ? AND published = true", blogId).Limit(1)
 
 		// Check if a record was found
 		if res.RowsAffected == 0 {
 			return nil
 		}
-
-		return &blog
+		fmt.Println(blog)
+		fmtRes := blog.fmtToDomainBlogData()
+		fmt.Println(fmtRes)
+		return &fmtRes
 	}
 
-	res := br.db.Model(&models.Comment{}).First(&blog, "id = ?", blogId)
+	res := br.db.Model(&models.Blog{}).Select(selectQuery).
+		Joins("JOIN users ON blogs.author_id = users.id").First(&blog, "blogs.id = ?", blogId)
 
 	// Check if a record was found
 	if res.RowsAffected == 0 {
 		return nil
 	}
+	fmtRes := blog.fmtToDomainBlogData()
 
-	return &blog
+	return &fmtRes
 
 }
 
