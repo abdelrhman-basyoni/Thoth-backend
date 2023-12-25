@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/abdelrhman-basyoni/thoth-backend/app/config"
 	"github.com/abdelrhman-basyoni/thoth-backend/core/domain/entities"
 	domain "github.com/abdelrhman-basyoni/thoth-backend/core/domain/repositories"
 	"github.com/abdelrhman-basyoni/thoth-backend/core/implementation/models"
@@ -77,7 +78,6 @@ func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *domain.Bl
 }
 
 func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[domain.BlogData], error) {
-	br.db = br.db.Debug()
 
 	validAuthor := authorId != nil
 	validCategory := category != nil && *category != ""
@@ -101,8 +101,7 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	recordsPerPage := 20
-	offset := (pageNum - 1) * recordsPerPage
+	offset := (pageNum - 1) * config.RecordsPerPage
 	var totalErr error
 	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
 	go func() {
@@ -118,7 +117,7 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 		defer wg.Done()
 		if err := br.db.Model(&models.Blog{}).Select(selectQuery).
 			Joins("JOIN users ON blogs.author_id = users.id").
-			Where(whereQuery, variables...).Offset(offset).Limit(recordsPerPage).Find(&res1).Error; err != nil {
+			Where(whereQuery, variables...).Offset(offset).Limit(config.RecordsPerPage).Find(&res1).Error; err != nil {
 			totalErr = err
 		}
 	}()
@@ -185,8 +184,7 @@ func (br *BlogRepoSql) GetBlogComments(blogId uint, pageNum int) (*typ.Paginated
 	wg.Add(2)
 	res := typ.PaginatedEntities[entities.Comment]{}
 
-	recordsPerPage := 20
-	offset := (pageNum - 1) * recordsPerPage
+	offset := (pageNum - 1) * config.RecordsPerPage
 
 	var totalErr error
 
@@ -199,7 +197,39 @@ func (br *BlogRepoSql) GetBlogComments(blogId uint, pageNum int) (*typ.Paginated
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogId).Offset(offset).Limit(recordsPerPage).Find(&res.Entities).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogId).Offset(offset).Limit(config.RecordsPerPage).Find(&res.Entities).Error; err != nil {
+			totalErr = err
+		}
+	}()
+	// Wait for both goroutines to complete
+	wg.Wait()
+
+	if totalErr != nil {
+		return nil, totalErr
+	}
+
+	return &res, nil
+}
+
+func (br *BlogRepoSql) GetBlogNotApprovedComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	res := typ.PaginatedEntities[entities.Comment]{}
+
+	offset := (pageNum - 1) * config.RecordsPerPage
+
+	var totalErr error
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ? AND approved = false", blogId).Count(&res.Total).Error; err != nil {
+			totalErr = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogId).Offset(offset).Limit(config.RecordsPerPage).Find(&res.Entities).Error; err != nil {
 			totalErr = err
 		}
 	}()

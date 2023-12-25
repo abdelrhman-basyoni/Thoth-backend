@@ -119,6 +119,13 @@ func (buc *BlogUseCases) GetBlogComments(blogId uint, pageNum int) (*typ.Paginat
 	return buc.blogRepo.GetBlogComments(blogId, pageNum)
 }
 
+func (buc *BlogUseCases) GetBlogNotApprovedComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error) {
+	if pageNum <= 0 {
+		return nil, errors.New("invalid page number")
+	}
+	return buc.blogRepo.GetBlogNotApprovedComments(blogId, pageNum)
+}
+
 func (buc *BlogUseCases) GetAllBlogsPaginated(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[domain.BlogData], error) {
 	if pageNum <= 0 {
 		return nil, errors.New("invalid page number")

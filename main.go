@@ -17,7 +17,7 @@ func main() {
 	db := config.InitDB()
 	e := echo.New()
 	e.Use(middleware.CORS())
-
+	db.Debug()
 	blogModule.RegisterBlogRoutes(e, db)
 	authModule.RegisterAuthRoutes(e, db)
 	userModule.RegisterUserRoutes(e, db)

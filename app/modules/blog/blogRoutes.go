@@ -17,8 +17,9 @@ func RegisterBlogRoutes(e *echo.Echo, db *gorm.DB) {
 	BlogGroup.GET("/getMyBlog/:id", controller.HandleGetMyBlog, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.POST("/publish/:id", controller.HandlePublish, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.POST("/comments/:id", controller.HandleAddComment)
-	BlogGroup.POST("/comments/:id", controller.HandleDeleteComment)
-	BlogGroup.GET("/comments/:id", controller.HandleGetBlogComments)
+	BlogGroup.DELETE("/comments/:id", controller.HandleDeleteComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
+	BlogGroup.GET("/comments/approved/:id", controller.HandleGetBlogComments)
+	BlogGroup.GET("/comments/notApproved/:id", controller.HandleGetBlogNotApprovedComments, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.POST("/comments/:id/approve", controller.HandleApproveComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 
 }
