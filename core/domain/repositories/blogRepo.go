@@ -23,7 +23,8 @@ type BlogData struct {
 
 type BlogRepository interface {
 	CreateBlog(title, text string, authorId uint, categories []string) error
-	PublishBlog(blogId uint) error
+	EditBlog(blogId uint, title, body string) error
+	TogglePublishBlog(blogId uint, publish bool) error
 	GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[BlogData], error)
 	GetBlogById(blogId uint, mustBePublished bool) *BlogData
 	AddComment(blogId uint, commenterName, text string) error
@@ -33,4 +34,5 @@ type BlogRepository interface {
 	ApproveComment(commentId uint) error
 	DeleteComment(commentId uint) error
 	CanUserControlBlog(userId, commentId uint) (bool, error)
+	CanUserControlComment(userId, commentId uint) (bool, error)
 }

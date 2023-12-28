@@ -138,10 +138,10 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 
 }
 
-func (br *BlogRepoSql) PublishBlog(blogId uint) error {
+func (br *BlogRepoSql) TogglePublishBlog(blogId uint, publish bool) error {
 
 	res := br.db.Model(&models.Blog{}).Where("id = ?", blogId).Updates(&map[string]interface{}{
-		"published":    true,
+		"published":    publish,
 		"published_at": time.Now(),
 	})
 
@@ -243,7 +243,7 @@ func (br *BlogRepoSql) GetBlogNotApprovedComments(blogId uint, pageNum int) (*ty
 	return &res, nil
 }
 
-func (br *BlogRepoSql) CanUserControlBlog(userId, commentId uint) (bool, error) {
+func (br *BlogRepoSql) CanUserControlComment(userId, commentId uint) (bool, error) {
 
 	var count int64
 	err := br.db.Model(&models.Comment{}).
@@ -256,5 +256,30 @@ func (br *BlogRepoSql) CanUserControlBlog(userId, commentId uint) (bool, error) 
 	}
 
 	return count > 0, nil
+
+}
+
+func (br *BlogRepoSql) CanUserControlBlog(userId, blogId uint) (bool, error) {
+
+	var count int64
+	err := br.db.Model(&models.Blog{}).
+		Where("id = ? AND author_id = ?", blogId, userId).
+		Count(&count).Error
+
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+
+}
+
+func (br *BlogRepoSql) EditBlog(blogId uint, title, body string) error {
+	res := br.db.Model(&models.Blog{}).Where("id = ?", blogId).Updates(&map[string]interface{}{
+		"title": title,
+		"body":  body,
+	})
+
+	return res.Error
 
 }

@@ -31,7 +31,7 @@ func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categorie
 
 }
 
-func (buc *BlogUseCases) PublishBlog(blogId, authorId uint, role string) error {
+func (buc *BlogUseCases) TogglePublishBlog(blogId, authorId uint, role string, publish bool) error {
 
 	if role == typ.Roles.Author {
 		res := buc.blogRepo.GetBlogForAuthor(blogId, authorId)
@@ -40,7 +40,7 @@ func (buc *BlogUseCases) PublishBlog(blogId, authorId uint, role string) error {
 		}
 	}
 
-	err := buc.blogRepo.PublishBlog(blogId)
+	err := buc.blogRepo.TogglePublishBlog(blogId, publish)
 
 	if err != nil {
 		return errors.New("failed to publish Blog")
@@ -80,7 +80,7 @@ func (buc *BlogUseCases) GetMyBlogById(blogId uint) (*domain.BlogData, error) {
 func (buc *BlogUseCases) ApproveComment(commentId, userId uint, role string) error {
 
 	if role != typ.Roles.Admin {
-		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
+		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
 		if !check {
 			return errors.New("unauthorized to Approve Comment")
 		}
@@ -97,7 +97,7 @@ func (buc *BlogUseCases) ApproveComment(commentId, userId uint, role string) err
 
 func (buc *BlogUseCases) DeleteComment(commentId, userId uint, role string) error {
 	if role != typ.Roles.Admin {
-		check, _ := buc.blogRepo.CanUserControlBlog(userId, commentId)
+		check, _ := buc.blogRepo.CanUserControlComment(userId, commentId)
 		if !check {
 			return errors.New("unauthorized to Approve Comment")
 		}
@@ -135,4 +135,16 @@ func (buc *BlogUseCases) GetAllBlogsPaginated(authorId *uint, category *string, 
 func (buc *BlogUseCases) GetAllMyBlogsPaginated(authorId *uint) (*typ.PaginatedEntities[domain.BlogData], error) {
 
 	return buc.blogRepo.GetBlogsFiltered(authorId, nil, 1)
+}
+
+func (buc *BlogUseCases) EditBlog(role string, userId, blogId uint, title, body string) error {
+
+	if role != typ.Roles.Admin {
+		check, _ := buc.blogRepo.CanUserControlBlog(userId, blogId)
+		if !check {
+			return errors.New("unauthorized to Edit Blog")
+		}
+	}
+
+	return buc.blogRepo.EditBlog(blogId, title, body)
 }

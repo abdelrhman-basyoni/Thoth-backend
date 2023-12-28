@@ -76,10 +76,11 @@ func (bc *BlogController) HandleCreate(c echo.Context) error {
 
 }
 
-func (bc *BlogController) HandlePublish(c echo.Context) error {
+func (bc *BlogController) HandlePublishToggle(c echo.Context) error {
 	role := c.Get("userRole").(string)
 	userId := c.Get("user").(uint)
 	blogID := c.Param("id")
+	publish := c.QueryParam("publish")
 
 	blogIdUint, err := strconv.ParseUint(blogID, 10, 64)
 	if err != nil {
@@ -87,7 +88,11 @@ func (bc *BlogController) HandlePublish(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
 
 	}
-	if err := bc.uc.PublishBlog(uint(blogIdUint), userId, role); err != nil {
+	var pub = true
+	if publish == "false" {
+		pub = false
+	}
+	if err := bc.uc.TogglePublishBlog(uint(blogIdUint), userId, role, pub); err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)
@@ -315,4 +320,41 @@ func (bc *BlogController) HandleGetMyBlogs(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, res)
+}
+
+type editBlog struct {
+	Title string `json:"title" validate:"required" `
+	Body  string `json:"body" validate:"required" `
+}
+
+func (bc *BlogController) HandleEditBlog(c echo.Context) error {
+	role := c.Get("userRole").(string)
+	userId := c.Get("user").(uint)
+	blogId := c.Param("id")
+
+	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
+
+	var blogContent editBlog
+	// Bind and validate the request body
+	if err := c.Bind(&blogContent); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": "Invalid request body",
+		})
+	}
+
+	err = bc.uc.EditBlog(role, userId, uint(blogIdUint), blogContent.Title, blogContent.Body)
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+		})
+	}
+
+	return c.NoContent(http.StatusOK)
+
 }
