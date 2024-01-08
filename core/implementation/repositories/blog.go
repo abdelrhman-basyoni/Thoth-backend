@@ -170,6 +170,7 @@ func (br *BlogRepoSql) GetBlogForAuthor(blogId, authorId uint) *entities.Blog {
 func (br *BlogRepoSql) ApproveComment(commentId uint) error {
 
 	res := br.db.Model(&models.Comment{}).Where("id = ?", commentId).UpdateColumn("approved", true)
+
 	return res.Error
 }
 
@@ -190,14 +191,46 @@ func (br *BlogRepoSql) GetBlogComments(blogId uint, pageNum int) (*typ.Paginated
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ? AND approved = true", blogId).Count(&res.Total).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blog_id = ? AND approved = true", blogId).Count(&res.Total).Error; err != nil {
 			totalErr = err
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if err := br.db.Model(&models.Comment{}).Where("blogId = ?", blogId).Offset(offset).Limit(config.RecordsPerPage).Find(&res.Entities).Error; err != nil {
+		if err := br.db.Model(&models.Comment{}).Where("blog_id = ?", blogId).Offset(offset).Limit(config.RecordsPerPage).Find(&res.Entities).Error; err != nil {
+			totalErr = err
+		}
+	}()
+	// Wait for both goroutines to complete
+	wg.Wait()
+
+	if totalErr != nil {
+		return nil, totalErr
+	}
+
+	return &res, nil
+}
+
+func (br *BlogRepoSql) GetMyBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[domain.CommentData], error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+	res := typ.PaginatedEntities[domain.CommentData]{}
+
+	offset := (pageNum - 1) * config.RecordsPerPage
+
+	var totalErr error
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Comment{}).Where("blog_id = ?", blogId).Count(&res.Total).Error; err != nil {
+			totalErr = err
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := br.db.Model(&models.Comment{}).Where("blog_id = ?", blogId).Offset(offset).Limit(config.RecordsPerPage).Find(&res.Entities).Error; err != nil {
 			totalErr = err
 		}
 	}()

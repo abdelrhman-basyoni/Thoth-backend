@@ -167,7 +167,7 @@ func (bc *BlogController) HandleGetMyBlog(c echo.Context) error {
 
 func (bc *BlogController) HandleApproveComment(c echo.Context) error {
 	userId := c.Get("user").(uint)
-	userRole := c.Get("role").(string)
+	userRole := c.Get("userRole").(string)
 	commentId := c.Param("id")
 
 	// Convert commentId to a uint
@@ -179,9 +179,10 @@ func (bc *BlogController) HandleApproveComment(c echo.Context) error {
 	}
 
 	err = bc.uc.ApproveComment(uint(commentIdUint), userId, userRole)
-
-	if err.Error() == "unauthorized to Approve Comment" {
-		return c.NoContent(http.StatusForbidden)
+	if err != nil {
+		if err.Error() == "unauthorized to Approve Comment" {
+			return c.NoContent(http.StatusForbidden)
+		}
 	}
 
 	return c.NoContent(http.StatusOK)
@@ -196,7 +197,7 @@ func (bc *BlogController) HandleDeleteComment(c echo.Context) error {
 
 	}
 	userId := c.Get("user").(uint)
-	userRole := c.Get("role").(string)
+	userRole := c.Get("userRole").(string)
 	if err := bc.uc.DeleteComment(uint(commentIdUint), userId, userRole); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": "Invalid comment id",
@@ -227,6 +228,38 @@ func (bc *BlogController) HandleGetBlogComments(c echo.Context) error {
 	}
 
 	res, err := bc.uc.GetBlogComments(uint(blogIdUint), pageNum)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+			"message": err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, res)
+
+}
+
+func (bc *BlogController) HandleGetMyBlogComments(c echo.Context) error {
+	blogId := c.Param("id")
+	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
+	if err != nil {
+		// Handle the error if the conversion fails
+		return c.JSON(http.StatusBadRequest, "Invalid blog ID")
+
+	}
+	pageParam := c.QueryParam("page")
+
+	pageNum := 1
+	if pageParam != "" {
+		pageVal, err := strconv.ParseInt(pageParam, 10, 64)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]interface{}{
+				"message": "Invalid page number",
+			})
+		}
+		pageNum = int(pageVal)
+	}
+
+	res, err := bc.uc.GetMyBlogComments(uint(blogIdUint), pageNum)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]interface{}{
 			"message": err.Error(),

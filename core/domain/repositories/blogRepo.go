@@ -21,6 +21,14 @@ type BlogData struct {
 	Author      BlogAuthorData `json:"author"`
 }
 
+type CommentData struct {
+	ID            uint   `json:"id"`
+	BlogID        uint   `json:"blogId"`
+	CommenterName string `json:"commenterName"`
+	Text          string `json:"text"`
+	Approved      bool   `json:"approved"`
+}
+
 type BlogRepository interface {
 	CreateBlog(title, text string, authorId uint, categories []string) error
 	EditBlog(blogId uint, title, body string) error
@@ -30,6 +38,7 @@ type BlogRepository interface {
 	AddComment(blogId uint, commenterName, text string) error
 	GetBlogForAuthor(blogId, authorId uint) *entities.Blog
 	GetBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)
+	GetMyBlogComments(blogId uint, pageNum int) (*typ.PaginatedEntities[CommentData], error)
 	GetBlogNotApprovedComments(blogId uint, pageNum int) (*typ.PaginatedEntities[entities.Comment], error)
 	ApproveComment(commentId uint) error
 	DeleteComment(commentId uint) error

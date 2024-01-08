@@ -17,10 +17,11 @@ func RegisterBlogRoutes(e *echo.Echo, db *gorm.DB) {
 	BlogGroup.GET("/get/:id", controller.HandleGetPublishedBlog)
 	BlogGroup.GET("/getMyBlog/:id", controller.HandleGetMyBlog, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.PUT("/togglePublish/:id", controller.HandlePublishToggle, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
-	BlogGroup.POST("/comments/:id", controller.HandleAddComment)
-	BlogGroup.DELETE("/comments/:id", controller.HandleDeleteComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.GET("/comments/approved/:id", controller.HandleGetBlogComments)
+	BlogGroup.GET("/comments/my/:id", controller.HandleGetMyBlogComments, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 	BlogGroup.GET("/comments/notApproved/:id", controller.HandleGetBlogNotApprovedComments, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
-	BlogGroup.POST("/comments/:id/approve", controller.HandleApproveComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
+	BlogGroup.PUT("/comments/approve/:id", controller.HandleApproveComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
+	BlogGroup.POST("/comments/:id", controller.HandleAddComment)
+	BlogGroup.DELETE("/comments/delete/:id", controller.HandleDeleteComment, middlewares.RoleAuth([]string{typ.Roles.Admin, typ.Roles.Author}))
 
 }
