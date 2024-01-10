@@ -20,9 +20,9 @@ func NewBlogUseCases(db *gorm.DB) *BlogUseCases {
 	return &BlogUseCases{blogRepo: repo}
 }
 
-func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categories []string) error {
+func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categories []string, publish bool) error {
 
-	err := buc.blogRepo.CreateBlog(title, text, authorId, categories)
+	err := buc.blogRepo.CreateBlog(title, text, authorId, categories, publish)
 
 	if err != nil {
 		return errors.New("failed to create Blog")

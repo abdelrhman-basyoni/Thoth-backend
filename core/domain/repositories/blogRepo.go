@@ -30,7 +30,7 @@ type CommentData struct {
 }
 
 type BlogRepository interface {
-	CreateBlog(title, text string, authorId uint, categories []string) error
+	CreateBlog(title, text string, authorId uint, categories []string, publish bool) error
 	EditBlog(blogId uint, title, body string) error
 	TogglePublishBlog(blogId uint, publish bool) error
 	GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[BlogData], error)

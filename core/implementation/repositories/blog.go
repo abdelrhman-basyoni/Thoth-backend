@@ -38,9 +38,15 @@ func NewBlogRepoSql(db *gorm.DB) *BlogRepoSql {
 	return &BlogRepoSql{db: db}
 }
 
-func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories []string) error {
+func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories []string, publish bool) error {
+	var res *gorm.DB
+	if publish {
+		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories, Published: publish, PublishedAt: time.Now()})
 
-	res := br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories})
+	} else {
+		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories})
+
+	}
 
 	return res.Error
 
