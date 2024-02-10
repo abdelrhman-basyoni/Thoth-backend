@@ -90,18 +90,19 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 	res := typ.PaginatedEntities[domain.BlogData]{}
 	res1 := []BlogData{}
 	test := &category
-	var whereQuery string
+	var whereQuery = "published = true"
 	var variables []any
+
 	if validAuthor && validCategory {
 
-		whereQuery = "author_id = ? AND ? = ANY(categories)"
+		whereQuery += " AND author_id = ? AND ? = ANY(categories) "
 		variables = append(variables, authorId, test)
 	} else if validAuthor && !validCategory {
 
-		whereQuery = "author_id = ?"
+		whereQuery += " AND author_id = ?"
 		variables = append(variables, authorId)
 	} else if !validAuthor && validCategory {
-		whereQuery = "? = ANY(categories)"
+		whereQuery += " AND ? = ANY(categories)"
 		variables = append(variables, test)
 	}
 	var wg sync.WaitGroup

@@ -18,6 +18,8 @@ func main() {
 	e := echo.New()
 	e.Use(middleware.CORS())
 	db.Debug()
+	// Set the router to be case-insensitive
+
 	blogModule.RegisterBlogRoutes(e, db)
 	authModule.RegisterAuthRoutes(e, db)
 	userModule.RegisterUserRoutes(e, db)
