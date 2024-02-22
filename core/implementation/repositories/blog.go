@@ -18,6 +18,7 @@ type BlogData struct {
 	ID          uint           `json:"id"`
 	Title       string         `json:"title"`
 	Body        string         `json:"body"`
+	Image       string         `json:"image"`
 	Published   bool           `json:"published"`
 	PublishedAt time.Time      `json:"publishedAt"`
 	Categories  pq.StringArray `json:"categories" gorm:"type:text[]"`
@@ -26,7 +27,7 @@ type BlogData struct {
 }
 
 func (res *BlogData) fmtToDomainBlogData() domain.BlogData {
-	blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
+	blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Image: res.Image, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
 	return blog
 }
 
@@ -38,13 +39,13 @@ func NewBlogRepoSql(db *gorm.DB) *BlogRepoSql {
 	return &BlogRepoSql{db: db}
 }
 
-func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories []string, publish bool) error {
+func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories []string, publish bool, image string) error {
 	var res *gorm.DB
 	if publish {
-		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories, Published: publish, PublishedAt: time.Now()})
+		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories, Published: publish, PublishedAt: time.Now(), Image: image})
 
 	} else {
-		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories})
+		res = br.db.Create(&models.Blog{Title: title, Body: text, AuthorId: authorId, Categories: categories, Image: image})
 
 	}
 
@@ -53,7 +54,7 @@ func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories 
 }
 
 func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *domain.BlogData {
-	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
+	selectQuery := "blogs.id, blogs.title, blog.image, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
 	var blog BlogData
 
 	if mustBePublished {
@@ -83,34 +84,37 @@ func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *domain.Bl
 
 }
 
-func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[domain.BlogData], error) {
+func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNum int, mustBePublished bool) (*typ.PaginatedEntities[domain.BlogData], error) {
 
 	validAuthor := authorId != nil
 	validCategory := category != nil && *category != ""
 	res := typ.PaginatedEntities[domain.BlogData]{}
 	res1 := []BlogData{}
 	test := &category
-	var whereQuery = "published = true"
+	var whereQuery string
+
 	var variables []any
 
 	if validAuthor && validCategory {
 
-		whereQuery += " AND author_id = ? AND ? = ANY(categories) "
+		whereQuery = "author_id = ? AND ? = ANY(categories) "
 		variables = append(variables, authorId, test)
 	} else if validAuthor && !validCategory {
 
-		whereQuery += " AND author_id = ?"
+		whereQuery = "author_id = ?"
 		variables = append(variables, authorId)
 	} else if !validAuthor && validCategory {
-		whereQuery += " AND ? = ANY(categories)"
+		whereQuery = " ? = ANY(categories)"
 		variables = append(variables, test)
 	}
 	var wg sync.WaitGroup
 	wg.Add(2)
-
+	if mustBePublished {
+		whereQuery += "published = true"
+	}
 	offset := (pageNum - 1) * config.RecordsPerPage
 	var totalErr error
-	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
+	selectQuery := "blogs.id, blogs.title, blogs.body, blogs.image, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
 	go func() {
 		defer wg.Done()
 		if err := br.db.Model(&models.Blog{}).Select(selectQuery).
@@ -136,7 +140,7 @@ func (br *BlogRepoSql) GetBlogsFiltered(authorId *uint, category *string, pageNu
 	}
 	entities := res.Entities
 	for _, res := range res1 {
-		blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
+		blog := domain.BlogData{ID: res.ID, Title: res.Title, Body: res.Body, Image: res.Image, Published: res.Published, Author: domain.BlogAuthorData{Name: res.AuthorName, ID: res.AuthorID}, PublishedAt: res.PublishedAt, Categories: res.Categories}
 		entities = append(entities, blog)
 	}
 	res.Entities = entities

@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	const port = 3000
+	const port = 5000
 	db := config.InitDB()
 	e := echo.New()
 	e.Use(middleware.CORS())

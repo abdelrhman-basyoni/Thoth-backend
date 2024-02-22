@@ -16,6 +16,7 @@ type BlogData struct {
 	Title       string         `json:"title"`
 	Body        string         `json:"body"`
 	Published   bool           `json:"published"`
+	Image       string         `json:"image"`
 	PublishedAt time.Time      `json:"publishedAt"`
 	Categories  []string       `json:"categories"`
 	Author      BlogAuthorData `json:"author"`
@@ -30,10 +31,10 @@ type CommentData struct {
 }
 
 type BlogRepository interface {
-	CreateBlog(title, text string, authorId uint, categories []string, publish bool) error
+	CreateBlog(title, text string, authorId uint, categories []string, publish bool, image string) error
 	EditBlog(blogId uint, title, body string) error
 	TogglePublishBlog(blogId uint, publish bool) error
-	GetBlogsFiltered(authorId *uint, category *string, pageNum int) (*typ.PaginatedEntities[BlogData], error)
+	GetBlogsFiltered(authorId *uint, category *string, pageNum int, mustBePublished bool) (*typ.PaginatedEntities[BlogData], error)
 	GetBlogById(blogId uint, mustBePublished bool) *BlogData
 	AddComment(blogId uint, commenterName, text string) error
 	GetBlogForAuthor(blogId, authorId uint) *entities.Blog

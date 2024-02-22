@@ -20,9 +20,9 @@ func NewBlogUseCases(db *gorm.DB) *BlogUseCases {
 	return &BlogUseCases{blogRepo: repo}
 }
 
-func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categories []string, publish bool) error {
+func (buc *BlogUseCases) CreateBlog(title, text string, authorId uint, categories []string, publish bool, image string) error {
 
-	err := buc.blogRepo.CreateBlog(title, text, authorId, categories, publish)
+	err := buc.blogRepo.CreateBlog(title, text, authorId, categories, publish, image)
 
 	if err != nil {
 		return errors.New("failed to create Blog")
@@ -137,11 +137,11 @@ func (buc *BlogUseCases) GetAllBlogsPaginated(authorId *uint, category *string, 
 	if pageNum <= 0 {
 		return nil, errors.New("invalid page number")
 	}
-	return buc.blogRepo.GetBlogsFiltered(authorId, category, pageNum)
+	return buc.blogRepo.GetBlogsFiltered(authorId, category, pageNum, true)
 }
 func (buc *BlogUseCases) GetAllMyBlogsPaginated(authorId *uint) (*typ.PaginatedEntities[domain.BlogData], error) {
 
-	return buc.blogRepo.GetBlogsFiltered(authorId, nil, 1)
+	return buc.blogRepo.GetBlogsFiltered(authorId, nil, 1, false)
 }
 
 func (buc *BlogUseCases) EditBlog(role string, userId, blogId uint, title, body string) error {

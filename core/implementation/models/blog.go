@@ -12,6 +12,7 @@ type Blog struct {
 	Title       string         `json:"title"`
 	Body        string         `json:"body" gorm:"type:text"`
 	Categories  pq.StringArray `json:"categories" gorm:"type:text[]"`
+	Image       string         `json:"image"`
 	AuthorId    uint           `json:"authorId" gorm:"foreignKey:UserID"`
 	Published   bool           `json:"published"`
 	PublishedAt time.Time      `json:"publishedAt"`

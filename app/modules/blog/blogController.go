@@ -19,6 +19,7 @@ var validate = validator.New()
 type createBlog struct {
 	Title      string   `json:"title" validate:"required" `
 	Text       string   `json:"body" validate:"required" `
+	Image      string   `json:"image" validate:"required"`
 	Publish    bool     `json:"publish"`
 	Categories []string `json:"categories" validate:"required,isStringArray"`
 }
@@ -69,7 +70,7 @@ func (bc *BlogController) HandleCreate(c echo.Context) error {
 		return err
 	}
 
-	if err := bc.uc.CreateBlog(blog.Title, blog.Text, userId, blog.Categories, blog.Publish || false); err != nil {
+	if err := bc.uc.CreateBlog(blog.Title, blog.Text, userId, blog.Categories, blog.Publish || false, blog.Image); err != nil {
 		return err
 	}
 
