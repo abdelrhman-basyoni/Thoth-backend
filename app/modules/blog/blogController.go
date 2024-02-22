@@ -1,6 +1,7 @@
 package blogModule
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -152,6 +153,7 @@ func (bc *BlogController) HandleGetPublishedBlog(c echo.Context) error {
 
 func (bc *BlogController) HandleGetMyBlog(c echo.Context) error {
 	blogId := c.Param("id")
+	fmt.Println(blogId)
 	blogIdUint, err := strconv.ParseUint(blogId, 10, 64)
 	if err != nil {
 		// Handle the error if the conversion fails

@@ -54,7 +54,7 @@ func (br *BlogRepoSql) CreateBlog(title, text string, authorId uint, categories 
 }
 
 func (br *BlogRepoSql) GetBlogById(blogId uint, mustBePublished bool) *domain.BlogData {
-	selectQuery := "blogs.id, blogs.title, blog.image, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
+	selectQuery := "blogs.id, blogs.title, blogs.image, blogs.body, blogs.published, blogs.published_at, blogs.categories, users.id as author_id,  users.name as author_name"
 	var blog BlogData
 
 	if mustBePublished {
